@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from PIL import Image
 import pymysql 
-
+import re
 
 
 
@@ -48,6 +48,12 @@ def get_db_connection(env):
         port=env['db_port'],
         cursorclass=pymysql.cursors.DictCursor
     )
+
+
+def clean_string(input_string):
+    cleaned_string = input_string.replace(" ", "_")
+    cleaned_string = re.sub(r"[^a-zA-Z0-9_-]", "", cleaned_string)  
+    return cleaned_string
 
 
 def get_s3_image_url(s3_client, bucket_name, key, expiration=120):
@@ -114,13 +120,15 @@ def main():
             index=0
         )
 
+        clean_brand = clean_string(brand)
+
 
         if st.button("Upload"):
             if uploaded_photo and color and brand and price > 0:
                 try: 
-                    filename = uploaded_photo.name.replace(" ", "_")
+                    filename = clean_string(uploaded_photo.name) # .replace(" ", "_")
                     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-                    s3_key = f"{category}/{category}_{filename}_{brand}_{color}_{timestamp}"
+                    s3_key = f"{category}/{category}_{filename}_{clean_brand}_{color}_{timestamp}"
 
                     s3_client.upload_fileobj(
                             uploaded_photo,
@@ -159,7 +167,7 @@ def main():
         st.header("Generate Random Outfit")
 
         if st.button("Generate Outfit"):
-            categories = ["Shirts", "Bottoms"] # , "Shoes"]
+            categories = ["Shirts", "Bottoms","Shoes"]
             outfit = {}
             total_price = 0
 
@@ -176,7 +184,7 @@ def main():
                     image_url = get_s3_image_url(s3_client, aws_credentials["s3_bucket_name"], item['filename'])
 
                     if image_url:
-                        st.image(image_url, caption=f"{category.title()} - {item['brand']}, {item['color']}", use_column_width=True)
+                        st.image(image_url, caption=f"{category.title()} - {item['brand']}, {item['color']}", use_container_width=True)
 
                     st.markdown(f"**{category.title()}** - Brand: `{item['brand']}`, Color: `{item['color']}`, Price: `${item['price']}`")
 
