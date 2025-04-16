@@ -50,6 +50,19 @@ def get_db_connection(env):
     )
 
 
+def get_s3_image_url(s3_client, bucket_name, key, expiration=120):
+    try:
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket_name, 'Key': key},
+            ExpiresIn=expiration
+        )
+        return url
+    except Exception as e:
+        print(f"Error generating URL: {e}")
+        return None
+
+
 # Get a random item per category
 def get_random_item(env, category):
     connection = get_db_connection(env)
@@ -146,7 +159,7 @@ def main():
         st.header("Generate Random Outfit")
 
         if st.button("Generate Outfit"):
-            categories = ["Shirt", "Bottoms"] # , "Shoes"]
+            categories = ["Shirts", "Bottoms"] # , "Shoes"]
             outfit = {}
             total_price = 0
 
@@ -160,7 +173,13 @@ def main():
             for category in categories:
                 item = outfit.get(category)
                 if item:
+                    image_url = get_s3_image_url(s3_client, aws_credentials["s3_bucket_name"], item['filename'])
+
+                    if image_url:
+                        st.image(image_url, caption=f"{category.title()} - {item['brand']}, {item['color']}", use_column_width=True)
+
                     st.markdown(f"**{category.title()}** - Brand: `{item['brand']}`, Color: `{item['color']}`, Price: `${item['price']}`")
+
 
             st.markdown("---")
             st.subheader(f"💰 Total Price: ${total_price:.2f}")
