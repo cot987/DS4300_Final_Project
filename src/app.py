@@ -57,7 +57,7 @@ def get_random_item(env, category):
         with connection.cursor() as cursor:
             query = f"""
                 SELECT key, brand, color, price 
-                FROM clothing_items 
+                FROM uploads
                 WHERE category = %s 
                 ORDER BY RAND() LIMIT 1;
             """
